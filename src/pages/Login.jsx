@@ -1,16 +1,67 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext.jsx'
 import './Login.css'
 
+// Firebase throws errors with machine-readable codes. Map the common ones to
+// messages a human actually understands.
+function friendlyError(code) {
+  switch (code) {
+    case 'auth/invalid-email':
+      return 'That email address looks invalid.'
+    case 'auth/email-already-in-use':
+      return 'An account with that email already exists. Try logging in.'
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters.'
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Incorrect email or password.'
+    case 'auth/not-configured':
+      return 'Login isn’t set up yet — Firebase keys are missing.'
+    default:
+      return 'Something went wrong. Please try again.'
+  }
+}
+
 /**
- * Login — sign in / sign up page.
- *
- * Phase 2 builds the *visual* form: a centered card with a Log in / Sign up
- * toggle. The fields don't do anything yet — we connect them to Firebase Auth
- * in Phase 4. The `mode` state already lets us switch the form's wording.
+ * Login — real sign in / sign up backed by Firebase Auth.
  */
 export default function Login() {
   const [mode, setMode] = useState('login') // 'login' | 'signup'
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const { signup, login } = useAuth()
+  const navigate = useNavigate()
   const isLogin = mode === 'login'
+
+  async function handleSubmit(e) {
+    e.preventDefault() // stop the browser's default form submission / reload
+    setError('')
+    setSubmitting(true)
+    try {
+      if (isLogin) {
+        await login(email, password)
+      } else {
+        await signup(email, password)
+      }
+      // On success, send the user to their pipeline.
+      navigate('/pipeline')
+    } catch (err) {
+      setError(friendlyError(err.code))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Switch between login/signup and clear any stale error.
+  function switchMode(next) {
+    setMode(next)
+    setError('')
+  }
 
   return (
     <div className="container login">
@@ -24,29 +75,34 @@ export default function Login() {
             : 'Sign up to start tracking applications.'}
         </p>
 
-        {/* Toggle between the two modes */}
         <div className="login__tabs">
           <button
             type="button"
             className={`login__tab ${isLogin ? 'login__tab--active' : ''}`}
-            onClick={() => setMode('login')}
+            onClick={() => switchMode('login')}
           >
             Log in
           </button>
           <button
             type="button"
             className={`login__tab ${!isLogin ? 'login__tab--active' : ''}`}
-            onClick={() => setMode('signup')}
+            onClick={() => switchMode('signup')}
           >
             Sign up
           </button>
         </div>
 
-        {/* preventDefault stops the page from reloading; real submit in Phase 4 */}
-        <form className="login__form" onSubmit={(e) => e.preventDefault()}>
+        <form className="login__form" onSubmit={handleSubmit}>
           <label className="login__field">
             <span>Email</span>
-            <input type="email" placeholder="you@example.com" autoComplete="email" />
+            <input
+              type="email"
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </label>
 
           <label className="login__field">
@@ -55,11 +111,25 @@ export default function Login() {
               type="password"
               placeholder="••••••••"
               autoComplete={isLogin ? 'current-password' : 'new-password'}
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </label>
 
-          <button type="submit" className="btn btn-primary login__submit">
-            {isLogin ? 'Log in' : 'Create account'}
+          {error && <p className="login__error">{error}</p>}
+
+          <button
+            type="submit"
+            className="btn btn-primary login__submit"
+            disabled={submitting}
+          >
+            {submitting
+              ? 'Please wait…'
+              : isLogin
+                ? 'Log in'
+                : 'Create account'}
           </button>
         </form>
       </div>

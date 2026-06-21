@@ -53,9 +53,30 @@
   color: #fff;
 }
 
+/* Logged-in user's email, shown next to the log-out button */
+.navbar__user {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The log-out button is a <button>; reset its native look to match links */
+.navbar__logout {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
 /* On narrow screens, tighten spacing and let the brand shrink so the
    nav links still fit without overflowing. */
 @media (max-width: 520px) {
+  .navbar__user {
+    display: none; /* hide the email on small screens to save space */
+  }
+
   .navbar__brand {
     font-size: 1rem;
   }

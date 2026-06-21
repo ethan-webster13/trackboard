@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
 import JobBoard from './pages/JobBoard.jsx'
 import Pipeline from './pages/Pipeline.jsx'
 import Login from './pages/Login.jsx'
@@ -23,7 +24,14 @@ export default function App() {
           {/* Redirect the bare "/" to the job board */}
           <Route path="/" element={<Navigate to="/jobs" replace />} />
           <Route path="/jobs" element={<JobBoard />} />
-          <Route path="/pipeline" element={<Pipeline />} />
+          <Route
+            path="/pipeline"
+            element={
+              <ProtectedRoute>
+                <Pipeline />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/login" element={<Login />} />
           {/* Catch-all for unknown URLs */}
           <Route path="*" element={<NotFound />} />

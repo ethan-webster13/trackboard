@@ -72,6 +72,11 @@ trackboard/
     ├── api/                ← code that talks to external services
     │   └── remotive.js     ← Remotive jobs API client
     │
+    ├── context/            ← app-wide shared state (React Context)
+    │   └── AuthContext.jsx ← current user + signup/login/logout
+    │
+    ├── firebase.js         ← initializes Firebase from env vars
+    │
     └── utils/              ← small reusable helper functions
         └── format.js       ← date / label formatting
 ```
@@ -92,8 +97,8 @@ trackboard/
 | **1. Scaffold** | Vite + React, folder structure, React Router, CSS reset & tokens | ✅ Done |
 | **2. Layout polish** | Navbar, footer, page shells, hero, responsive design | ✅ Done |
 | **3. Live Job Board** | Fetch + display Remotive jobs, search/filter, loading & error states | ✅ Done |
-| **4. Firebase Auth** | Sign up / log in / log out, protected routes | 🔜 Next |
-| **5. Firestore data** | Save a job to your pipeline, real-time sync | ⬜ |
+| **4. Firebase Auth** | Sign up / log in / log out, protected routes | 🔧 Code ready — needs your Firebase keys |
+| **5. Firestore data** | Save a job to your pipeline, real-time sync | 🔜 Next |
 | **6. Kanban pipeline** | Drag jobs across columns (Wishlist → Offer) | ⬜ |
 | **7. Polish & deploy** | Responsive cleanup, empty states, deploy to Vercel | ⬜ |
 
@@ -146,6 +151,26 @@ trackboard/
 > fetch once and filter on the client. **Lesson: verify how an API actually
 > behaves — don't trust the docs blindly.**
 
+### 🔧 Phase 4 — Firebase Auth
+- **Environment variables** — Firebase keys live in `.env.local` (git-ignored)
+  and are read via `import.meta.env.VITE_*`. `.env.example` documents what's
+  needed without exposing real values.
+- **React Context** — `AuthContext` shares the logged-in user and the
+  signup/login/logout actions with the whole app, avoiding "prop drilling"
+  (passing the same prop down through many layers).
+- **Custom hook** — `useAuth()` is our own hook wrapping `useContext`, so any
+  component reads auth with one clean line: `const { user, login } = useAuth()`.
+- **`onAuthStateChanged`** — a Firebase listener that keeps `user` in sync and
+  remembers the session across page refreshes.
+- **Protected routes** — `<ProtectedRoute>` redirects to `/login` when there's
+  no user, guarding the Pipeline page.
+- **Error mapping** — Firebase's cryptic error codes
+  (`auth/invalid-credential`…) are translated into friendly messages.
+- **Resilient initialization** — if the keys aren't set yet, Firebase simply
+  doesn't initialize and auth features are disabled, so the public Job Board
+  keeps working instead of the whole app crashing. *(Good defensive coding:
+  a missing optional dependency shouldn't take down unrelated features.)*
+
 > *(This section gets a new entry after each phase.)*
 
 ---
@@ -174,6 +199,14 @@ trackboard/
   usually as JSON. Remotive is one.
 - **State machine** — modeling UI as a small set of named states (here:
   `loading` / `success` / `error`) instead of juggling many boolean flags.
+- **Context** — React's built-in way to share a value with a whole subtree of
+  components without passing props through every level.
+- **Prop drilling** — the problem Context solves: threading a prop down through
+  many intermediate components that don't actually use it.
+- **Environment variable** — a configuration value kept outside the code (in a
+  `.env` file), so secrets/keys aren't committed and each environment can differ.
+- **Authentication** — verifying *who* a user is (login). Distinct from
+  *authorization* (what they're allowed to do).
 
 ---
 

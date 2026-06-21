@@ -3,13 +3,16 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
+import { AuthProvider } from './context/AuthContext.jsx'
 
-// BrowserRouter must wrap the whole app so any component can use routing
-// (links, navigation, route params, etc.).
+// Provider order: Router on the outside, then AuthProvider, so auth-aware
+// components can also use routing (e.g. redirect after login).
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
 )
