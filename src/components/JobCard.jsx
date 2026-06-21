@@ -1,21 +1,46 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext.jsx'
+import { usePipeline } from '../context/PipelineContext.jsx'
 import { timeAgo, formatJobType } from '../utils/format.js'
 import './JobCard.css'
 
 /**
- * JobCard — displays one job listing.
+ * JobCard — displays one job listing with a "Save to pipeline" toggle.
  *
  * Props:
  *   - job (object) a single job from the Remotive API
- *
- * In Phase 5 we'll add a "Save to pipeline" button here that writes to
- * Firestore. For now it links out to the original posting.
  */
 export default function JobCard({ job }) {
-  // Some companies have no logo (or a broken URL). Track that so we can fall
-  // back to a letter avatar instead of showing a broken image icon.
+  const { user } = useAuth()
+  const { isSaved, saveJob, removeJob } = usePipeline()
+  const navigate = useNavigate()
+
   const [logoFailed, setLogoFailed] = useState(false)
+  const [busy, setBusy] = useState(false) // true while a save/remove is in flight
   const showLogo = job.company_logo && !logoFailed
+  const saved = isSaved(job.id)
+
+  async function handleSaveToggle() {
+    // Saving requires an account — send guests to the login page first.
+    if (!user) {
+      navigate('/login')
+      return
+    }
+    setBusy(true)
+    try {
+      if (saved) {
+        await removeJob(job.id)
+      } else {
+        await saveJob(job)
+      }
+    } catch (err) {
+      console.error('Could not update pipeline:', err)
+      alert('Sorry, that didn’t save. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <article className="job-card">
@@ -53,14 +78,24 @@ export default function JobCard({ job }) {
         <span className="job-card__date">{timeAgo(job.publication_date)}</span>
       </div>
 
-      <a
-        className="btn btn-primary job-card__apply"
-        href={job.url}
-        target="_blank"
-        rel="noreferrer"
-      >
-        View on Remotive ↗
-      </a>
+      <div className="job-card__actions">
+        <button
+          type="button"
+          className={`btn job-card__save ${saved ? 'job-card__save--saved' : 'btn-primary'}`}
+          onClick={handleSaveToggle}
+          disabled={busy}
+        >
+          {busy ? '…' : saved ? '✓ Saved' : '+ Save'}
+        </button>
+        <a
+          className="btn job-card__view"
+          href={job.url}
+          target="_blank"
+          rel="noreferrer"
+        >
+          View ↗
+        </a>
+      </div>
     </article>
   )
 }

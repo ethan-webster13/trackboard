@@ -18,6 +18,7 @@
 
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
+import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -37,10 +38,12 @@ export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey)
 // instead of crashing the whole page with an "invalid-api-key" error.
 let app = null
 let auth = null
+let db = null
 
 if (isFirebaseConfigured) {
   app = initializeApp(firebaseConfig)
   auth = getAuth(app)
+  db = getFirestore(app)
 } else {
   console.warn(
     'Firebase is not configured yet. Copy .env.example to .env.local, fill in ' +
@@ -49,8 +52,8 @@ if (isFirebaseConfigured) {
   )
 }
 
-// The Auth service (or null if not configured). Any file can
-// `import { auth } from './firebase'`.
-export { auth }
+// The Auth service and Firestore database (or null if not configured). Any
+// file can `import { auth, db } from './firebase'`.
+export { auth, db }
 
 export default app
