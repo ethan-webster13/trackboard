@@ -52,3 +52,20 @@
   background-color: var(--color-primary-hover);
   color: #fff;
 }
+
+/* On narrow screens, tighten spacing and let the brand shrink so the
+   nav links still fit without overflowing. */
+@media (max-width: 520px) {
+  .navbar__brand {
+    font-size: 1rem;
+  }
+
+  .navbar__links {
+    gap: var(--space-1);
+  }
+
+  .navbar__link {
+    padding: var(--space-2);
+    font-size: 0.9rem;
+  }
+}

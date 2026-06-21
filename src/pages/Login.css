@@ -1,0 +1,87 @@
+.login {
+  display: grid;
+  place-items: center;
+  padding-top: var(--space-8);
+}
+
+.login__card {
+  width: 100%;
+  max-width: 400px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+}
+
+.login__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.login__subtitle {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-5);
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+/* --- Mode toggle ---------------------------------------------------------- */
+.login__tabs {
+  display: flex;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1);
+  margin-bottom: var(--space-5);
+}
+
+.login__tab {
+  flex: 1;
+  padding: var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.login__tab--active {
+  background-color: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+/* --- Form ----------------------------------------------------------------- */
+.login__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.login__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.login__field input {
+  padding: var(--space-3);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  outline: none;
+}
+
+.login__field input:focus {
+  border-color: var(--color-primary);
+}
+
+.login__submit {
+  margin-top: var(--space-2);
+  width: 100%;
+}

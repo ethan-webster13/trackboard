@@ -1,0 +1,12 @@
+/* App-level layout: full-height flex column with a pinned footer. */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.app-main {
+  flex: 1; /* grows to fill space, pushing the footer to the bottom */
+  width: 100%;
+  padding-bottom: var(--space-8);
+}
