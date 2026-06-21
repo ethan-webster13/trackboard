@@ -1,0 +1,54 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.navbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+}
+
+.navbar__brand {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.navbar__links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.navbar__link {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.navbar__link:hover {
+  color: var(--color-text);
+  background-color: var(--color-surface-2);
+}
+
+/* react-router adds this class to the matching NavLink automatically */
+.navbar__link.active {
+  color: var(--color-text);
+}
+
+.navbar__link--cta {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+
+.navbar__link--cta:hover {
+  background-color: var(--color-primary-hover);
+  color: #fff;
+}
