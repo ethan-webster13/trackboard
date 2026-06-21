@@ -101,8 +101,8 @@ trackboard/
 | **3. Live Job Board** | Fetch + display Remotive jobs, search/filter, loading & error states | ✅ Done |
 | **4. Firebase Auth** | Sign up / log in / log out, protected routes | ✅ Done |
 | **5. Firestore data** | Save a job to your pipeline, real-time sync | ✅ Done |
-| **6. Kanban pipeline** | Drag jobs across columns (Wishlist → Offer) | 🔜 Next |
-| **7. Polish & deploy** | Responsive cleanup, empty states, deploy to Vercel | ⬜ |
+| **6. Kanban pipeline** | Drag jobs across columns (Wishlist → Offer) | ✅ Done |
+| **7. Polish & deploy** | Responsive cleanup, empty states, deploy to Vercel | 🔜 Next |
 
 ---
 
@@ -194,6 +194,26 @@ trackboard/
 - **Subscription cleanup** — returning the unsubscribe function from `useEffect`
   tears down the Firestore listener on logout/unmount, preventing leaks and
   cross-user data bleed.
+
+### ✅ Phase 6 — Kanban drag-and-drop
+- **Native HTML5 drag-and-drop** — no library; we used the browser's built-in
+  API. The three key events:
+  1. **`dragstart`** (on the card) — remember which job was picked up.
+  2. **`dragover`** (on a column) — call `preventDefault()` so a drop is allowed,
+     and highlight the column.
+  3. **`drop`** (on a column) — move the job to that stage (writes to Firestore).
+- **`draggable` attribute** — makes an element grabbable.
+- **`dataTransfer`** — the small payload carried during a drag; some browsers
+  need data set on it for the drag to start at all.
+- **Avoiding flicker on `dragleave`** — moving the mouse over a child card fires
+  `dragleave` on the column; we check `relatedTarget` so the highlight only
+  clears when the cursor truly leaves the column.
+- **No redundant writes** — dropping a card back on its own column is a no-op;
+  we only call `moveJob` when the stage actually changes.
+- **Reused the data layer** — drag-and-drop calls the same `moveJob` from Phase
+  5, so the change syncs in real time like everything else.
+- **Accessibility fallback** — the stage dropdown stays, because native drag is
+  mouse-only (it doesn't work on touchscreens or via keyboard).
 
 > *(This section gets a new entry after each phase.)*
 
