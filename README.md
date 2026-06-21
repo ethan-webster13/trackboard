@@ -70,12 +70,14 @@ trackboard/
     │   └── Login.jsx / .css       ← auth screen    (built in Phase 4)
     │
     ├── api/                ← code that talks to external services
-    │   └── remotive.js     ← Remotive jobs API client
+    │   ├── remotive.js     ← Remotive jobs API client
+    │   └── pipeline.js     ← Firestore reads/writes for saved jobs
     │
     ├── context/            ← app-wide shared state (React Context)
-    │   └── AuthContext.jsx ← current user + signup/login/logout
+    │   ├── AuthContext.jsx     ← current user + signup/login/logout
+    │   └── PipelineContext.jsx ← saved jobs, live from Firestore
     │
-    ├── firebase.js         ← initializes Firebase from env vars
+    ├── firebase.js         ← initializes Firebase (Auth + Firestore) from env vars
     │
     └── utils/              ← small reusable helper functions
         └── format.js       ← date / label formatting
@@ -98,8 +100,8 @@ trackboard/
 | **2. Layout polish** | Navbar, footer, page shells, hero, responsive design | ✅ Done |
 | **3. Live Job Board** | Fetch + display Remotive jobs, search/filter, loading & error states | ✅ Done |
 | **4. Firebase Auth** | Sign up / log in / log out, protected routes | ✅ Done |
-| **5. Firestore data** | Save a job to your pipeline, real-time sync | 🔜 Next |
-| **6. Kanban pipeline** | Drag jobs across columns (Wishlist → Offer) | ⬜ |
+| **5. Firestore data** | Save a job to your pipeline, real-time sync | ✅ Done |
+| **6. Kanban pipeline** | Drag jobs across columns (Wishlist → Offer) | 🔜 Next |
 | **7. Polish & deploy** | Responsive cleanup, empty states, deploy to Vercel | ⬜ |
 
 ---
@@ -171,6 +173,28 @@ trackboard/
   keeps working instead of the whole app crashing. *(Good defensive coding:
   a missing optional dependency shouldn't take down unrelated features.)*
 
+### ✅ Phase 5 — Firestore data
+- **Cloud database (Firestore)** — saved jobs persist in the cloud, not just in
+  the browser, so they survive refreshes and follow you across devices.
+- **Data modeling** — jobs are stored under `users/{uid}/pipeline/{jobId}`. This
+  per-user nesting makes "show me *my* jobs" trivial and keeps users isolated.
+- **Security rules** — published in the Firebase console so a user can only
+  read/write their own `users/{uid}` space. *Never trust the client alone:* the
+  rules are the real lock on the data.
+- **Real-time sync with `onSnapshot`** — instead of fetching once, we subscribe.
+  The callback fires immediately and again on every change, so the Save button,
+  pipeline counts, and columns all update live. (Open the app in two tabs, save a
+  job in one, and watch it appear in the other.)
+- **`serverTimestamp()`** — the save time is set by Firebase's servers, so it's
+  consistent regardless of the user's device clock.
+- **Provider composition** — `PipelineProvider` sits inside `AuthProvider`
+  because it needs the current user. Providers stack like layers.
+- **`Set` for O(1) lookups** — saved job ids live in a `Set`, so checking
+  "is this job already saved?" on every card is instant.
+- **Subscription cleanup** — returning the unsubscribe function from `useEffect`
+  tears down the Firestore listener on logout/unmount, preventing leaks and
+  cross-user data bleed.
+
 > *(This section gets a new entry after each phase.)*
 
 ---
@@ -207,6 +231,13 @@ trackboard/
   `.env` file), so secrets/keys aren't committed and each environment can differ.
 - **Authentication** — verifying *who* a user is (login). Distinct from
   *authorization* (what they're allowed to do).
+- **Firestore** — Firebase's cloud NoSQL database. Data is organized as
+  **collections** (lists) of **documents** (records), which can nest.
+- **Real-time listener / subscription** — code that gets pushed new data
+  automatically whenever it changes, instead of asking ("polling") repeatedly.
+  `onSnapshot` is one.
+- **Security rules** — server-side rules that decide who may read/write which
+  documents. The real enforcement layer, since client code can be bypassed.
 
 ---
 
