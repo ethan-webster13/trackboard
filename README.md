@@ -97,7 +97,7 @@ trackboard/
 | **1. Scaffold** | Vite + React, folder structure, React Router, CSS reset & tokens | ✅ Done |
 | **2. Layout polish** | Navbar, footer, page shells, hero, responsive design | ✅ Done |
 | **3. Live Job Board** | Fetch + display Remotive jobs, search/filter, loading & error states | ✅ Done |
-| **4. Firebase Auth** | Sign up / log in / log out, protected routes | 🔧 Code ready — needs your Firebase keys |
+| **4. Firebase Auth** | Sign up / log in / log out, protected routes | ✅ Done |
 | **5. Firestore data** | Save a job to your pipeline, real-time sync | 🔜 Next |
 | **6. Kanban pipeline** | Drag jobs across columns (Wishlist → Offer) | ⬜ |
 | **7. Polish & deploy** | Responsive cleanup, empty states, deploy to Vercel | ⬜ |
