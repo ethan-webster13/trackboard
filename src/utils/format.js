@@ -28,6 +28,17 @@ export function timeAgo(isoDate) {
 }
 
 /**
+ * True if the given ISO date is within the last calendar month (i.e. not more
+ * than one month old). Used to hide stale job listings.
+ */
+export function isWithinLastMonth(isoDate) {
+  if (!isoDate) return false
+  const cutoff = new Date()
+  cutoff.setMonth(cutoff.getMonth() - 1)
+  return new Date(isoDate).getTime() >= cutoff.getTime()
+}
+
+/**
  * Convert an HTML string (like a job description from an external API) into
  * readable plain text, preserving paragraph/list breaks.
  *

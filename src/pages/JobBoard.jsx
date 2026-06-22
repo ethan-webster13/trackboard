@@ -3,15 +3,22 @@ import PageHeader from '../components/PageHeader.jsx'
 import JobCard from '../components/JobCard.jsx'
 import JobDetailModal from '../components/JobDetailModal.jsx'
 import { fetchJobs, CATEGORIES, LEVELS } from '../api/muse.js'
+import { isWithinLastMonth } from '../utils/format.js'
 import './JobBoard.css'
+
+// The Muse returns jobs in relevance order (not by date) and only ~1 in 4 are
+// recent, so we fetch several API pages per "load" to gather a useful number of
+// fresh jobs, then filter + sort on the client.
+const PAGES_PER_LOAD = 3
 
 /**
  * JobBoard — live job listings from The Muse API.
  *
- * The Muse supports real server-side filtering and pagination, so:
- *   - category / level / remoteOnly  → re-fetch from page 1 (server filters)
- *   - "Load more"                    → fetch the next page and APPEND
- *   - search box                     → filters the already-loaded jobs locally
+ * Rules enforced here:
+ *   - only jobs posted in the LAST MONTH are ever shown (client-side filter)
+ *   - results are sorted NEWEST FIRST
+ *   - category / level / remote filters run server-side
+ *   - search filters the already-loaded jobs locally
  */
 export default function JobBoard() {
   const [jobs, setJobs] = useState([])
@@ -24,31 +31,51 @@ export default function JobBoard() {
   const [remoteOnly, setRemoteOnly] = useState(false)
 
   // Pagination + local search
-  const [page, setPage] = useState(1)
+  const [nextPage, setNextPage] = useState(1) // next API page to request
   const [pageCount, setPageCount] = useState(0)
-  const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
 
-  // The job shown in the detail modal (null = closed)
   const [selectedJob, setSelectedJob] = useState(null)
 
-  // Fetch the FIRST page whenever a filter changes. Replaces the list.
+  // Fetch PAGES_PER_LOAD pages starting at `startPage`, keep only jobs from the
+  // last month. Resilient: if one page request fails (Muse rate-limits bursts),
+  // we keep the pages that succeeded instead of failing the whole batch.
+  const fetchBatch = useCallback(
+    async (startPage, signal) => {
+      const pageNums = Array.from(
+        { length: PAGES_PER_LOAD },
+        (_, i) => startPage + i
+      )
+      const settled = await Promise.allSettled(
+        pageNums.map((p) =>
+          fetchJobs({ category, level, remoteOnly, page: p, signal })
+        )
+      )
+
+      let maxPageCount = 0
+      const batch = []
+      for (const r of settled) {
+        if (r.status === 'fulfilled') {
+          maxPageCount = Math.max(maxPageCount, r.value.pageCount)
+          batch.push(...r.value.jobs)
+        }
+      }
+      const recent = batch.filter((j) => isWithinLastMonth(j.publishedAt))
+      return { recent, pageCount: maxPageCount }
+    },
+    [category, level, remoteOnly]
+  )
+
+  // Reload the first batch whenever a filter changes.
   useEffect(() => {
     const controller = new AbortController()
     async function load() {
       setStatus('loading')
       try {
-        const result = await fetchJobs({
-          category,
-          level,
-          remoteOnly,
-          page: 1,
-          signal: controller.signal,
-        })
-        setJobs(result.jobs)
-        setPage(1)
-        setPageCount(result.pageCount)
-        setTotal(result.total)
+        const { recent, pageCount: pc } = await fetchBatch(1, controller.signal)
+        setJobs(recent)
+        setNextPage(1 + PAGES_PER_LOAD)
+        setPageCount(pc)
         setStatus('success')
       } catch (err) {
         if (err.name !== 'AbortError') {
@@ -59,45 +86,47 @@ export default function JobBoard() {
     }
     load()
     return () => controller.abort()
-  }, [category, level, remoteOnly])
+  }, [fetchBatch])
 
-  // Fetch the NEXT page and append it to the existing list.
+  // Fetch the next batch of pages and append the recent ones.
   const loadMore = useCallback(async () => {
     setLoadingMore(true)
     try {
-      const next = page + 1
-      const result = await fetchJobs({ category, level, remoteOnly, page: next })
-      // Avoid duplicates if the API ever returns overlap.
+      const { recent } = await fetchBatch(nextPage)
       setJobs((prev) => {
         const seen = new Set(prev.map((j) => j.id))
-        return [...prev, ...result.jobs.filter((j) => !seen.has(j.id))]
+        return [...prev, ...recent.filter((j) => !seen.has(j.id))]
       })
-      setPage(next)
+      setNextPage((p) => p + PAGES_PER_LOAD)
     } catch (err) {
       console.error('Could not load more jobs:', err)
     } finally {
       setLoadingMore(false)
     }
-  }, [page, category, level, remoteOnly])
+  }, [fetchBatch, nextPage])
 
-  // Client-side text search across the jobs already loaded.
+  // Search filter + newest-first sort applied to the loaded jobs.
   const visibleJobs = useMemo(() => {
     const query = search.trim().toLowerCase()
-    if (!query) return jobs
-    return jobs.filter(
-      (job) =>
-        job.title.toLowerCase().includes(query) ||
-        job.company.toLowerCase().includes(query)
+    const filtered = query
+      ? jobs.filter(
+          (job) =>
+            job.title.toLowerCase().includes(query) ||
+            job.company.toLowerCase().includes(query)
+        )
+      : jobs
+    return [...filtered].sort(
+      (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
     )
   }, [jobs, search])
 
-  const hasMore = page < pageCount
+  const hasMore = nextPage <= pageCount
 
   return (
     <div className="container">
       <PageHeader
         title="Find your next role"
-        subtitle="Thousands of live listings from The Muse. Filter, search, and save the ones worth chasing."
+        subtitle="Fresh listings from The Muse — posted in the last month, newest first. Filter, search, and save the ones worth chasing."
       />
 
       {/* Filter + search controls */}
@@ -156,14 +185,20 @@ export default function JobBoard() {
 
       {status === 'success' && visibleJobs.length === 0 && (
         <div className="jobboard__state">
-          <p>No jobs match your filters.</p>
+          <p>No jobs posted in the last month match your filters.</p>
+          {hasMore && (
+            <button className="btn" onClick={loadMore} disabled={loadingMore}>
+              {loadingMore ? 'Loading…' : 'Load more'}
+            </button>
+          )}
         </div>
       )}
 
       {status === 'success' && visibleJobs.length > 0 && (
         <>
           <p className="jobboard__count">
-            Showing {visibleJobs.length} of {total.toLocaleString()} matching jobs
+            Showing {visibleJobs.length} job
+            {visibleJobs.length !== 1 ? 's' : ''} posted in the last month
           </p>
           <div className="jobboard__grid">
             {visibleJobs.map((job) => (
@@ -171,8 +206,6 @@ export default function JobBoard() {
             ))}
           </div>
 
-          {/* Load more — only when there are more pages and we're not searching
-              (search filters locally, so paging would be confusing then). */}
           {hasMore && !search && (
             <div className="jobboard__loadmore">
               <button
@@ -187,7 +220,6 @@ export default function JobBoard() {
         </>
       )}
 
-      {/* Detail modal (renders only when a job is selected) */}
       <JobDetailModal job={selectedJob} onClose={() => setSelectedJob(null)} />
     </div>
   )

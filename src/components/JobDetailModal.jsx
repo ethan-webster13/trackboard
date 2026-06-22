@@ -21,7 +21,12 @@ export default function JobDetailModal({ job, onClose }) {
   const navigate = useNavigate()
 
   // Close on Escape, and prevent the page behind from scrolling while open.
+  // IMPORTANT: only do this when a job is actually open. This component is
+  // always mounted (with job=null when closed), and hooks run before the early
+  // return below — so without this guard we'd lock page scroll permanently.
   useEffect(() => {
+    if (!job) return
+
     function onKey(e) {
       if (e.key === 'Escape') onClose()
     }
@@ -31,7 +36,7 @@ export default function JobDetailModal({ job, onClose }) {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
     }
-  }, [onClose])
+  }, [job, onClose])
 
   if (!job) return null
 

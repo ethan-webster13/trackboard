@@ -261,6 +261,13 @@ pagination.
   *append* results (de-duping by id) instead of replacing them.
 - **Detail modal** — clicking "Details" opens a popup with the full job
   description. It closes on Escape, on overlay click, and locks background scroll.
+  *(Bug we fixed: the scroll-lock effect must be guarded with `if (!job) return`
+  — hooks run before an early `return null`, so an always-mounted modal would
+  otherwise lock page scrolling permanently.)*
+- **Freshness rule** — only jobs posted in the **last month** are shown, sorted
+  **newest first**. The Muse can't sort/filter by date server-side and only ~1
+  in 4 jobs are recent, so we fetch a few pages per "load" (`Promise.allSettled`
+  for resilience), then filter + sort on the client.
 - **Safe HTML handling (XSS)** — job descriptions arrive as HTML from a third
   party. Instead of injecting it raw (an injection risk), `htmlToParagraphs()`
   uses the browser's `DOMParser` to extract readable text. *(Never trust
