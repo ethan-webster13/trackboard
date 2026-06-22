@@ -18,7 +18,34 @@
 
 .jobboard__search {
   flex: 1;
-  min-width: 240px;
+  min-width: 220px;
+}
+
+/* "Remote only" checkbox toggle */
+.jobboard__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.jobboard__toggle input {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* "Load more" button row */
+.jobboard__loadmore {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-6);
 }
 
 .jobboard__search:focus,

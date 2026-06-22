@@ -38,20 +38,21 @@ function pipelineDoc(uid, jobId) {
 }
 
 /**
- * Save a job to the user's pipeline. We store only the fields we need to
- * render the card later (not the huge HTML description), plus the stage and a
- * server-generated timestamp.
+ * Save a job to the user's pipeline. We store only the normalized fields we
+ * need to render the card later (not the huge HTML description), plus the stage
+ * and a server-generated timestamp.
+ *
+ * `job` is the normalized shape produced by the API client (see api/muse.js):
+ * { id, title, company, location, category, level, url, ... }.
  */
 export function saveJob(uid, job) {
   return setDoc(pipelineDoc(uid, job.id), {
     jobId: String(job.id),
     title: job.title ?? '',
-    company_name: job.company_name ?? '',
-    company_logo: job.company_logo ?? '',
+    company: job.company ?? '',
+    location: job.location ?? '',
     category: job.category ?? '',
-    candidate_required_location: job.candidate_required_location ?? '',
-    job_type: job.job_type ?? '',
-    salary: job.salary ?? '',
+    level: job.level ?? '',
     url: job.url ?? '',
     stage: DEFAULT_STAGE,
     savedAt: serverTimestamp(),

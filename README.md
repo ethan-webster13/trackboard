@@ -43,7 +43,7 @@ npm run preview
 | **Plain CSS + design tokens** | Styling | Building our own components shows more skill than a UI library |
 | **Firebase Auth** *(Phase 4)* | Login / signup | Real authentication without writing a backend |
 | **Firestore** *(Phase 5)* | Database | Cloud database with real-time sync |
-| **Remotive API** *(Phase 3)* | Live job data | Free public REST API of remote jobs |
+| **The Muse API** *(Phase 3, v2)* | Live job data | Free public REST API with real pagination + server-side filters (replaced Remotive, which capped at 30 jobs) |
 | **Vercel** *(Phase 7)* | Hosting | One-click deploy → live demo link for your resume |
 
 ---
@@ -64,7 +64,10 @@ trackboard/
     ├── components/         ← reusable UI pieces shared across pages
     │   ├── Navbar.jsx / .css
     │   ├── Footer.jsx / .css
-    │   └── PageHeader.jsx / .css
+    │   ├── PageHeader.jsx / .css
+    │   ├── JobCard.jsx / .css        ← one job listing + Save button
+    │   ├── JobDetailModal.jsx / .css ← full-description popup
+    │   └── ProtectedRoute.jsx        ← guards logged-in-only pages
     │
     ├── pages/              ← one component per route/screen
     │   ├── JobBoard.jsx / .css    ← live listings  (built in Phase 3)
@@ -72,7 +75,7 @@ trackboard/
     │   └── Login.jsx / .css       ← auth screen    (built in Phase 4)
     │
     ├── api/                ← code that talks to external services
-    │   ├── remotive.js     ← Remotive jobs API client
+    │   ├── muse.js         ← The Muse jobs API client (+ normalizer)
     │   └── pipeline.js     ← Firestore reads/writes for saved jobs
     │
     ├── context/            ← app-wide shared state (React Context)
@@ -100,7 +103,7 @@ trackboard/
 |-------|---------------|--------|
 | **1. Scaffold** | Vite + React, folder structure, React Router, CSS reset & tokens | ✅ Done |
 | **2. Layout polish** | Navbar, footer, page shells, hero, responsive design | ✅ Done |
-| **3. Live Job Board** | Fetch + display Remotive jobs, search/filter, loading & error states | ✅ Done |
+| **3. Live Job Board** | Fetch + display live jobs, search/filter, loading & error states (now powered by The Muse — see [enhancements](#-post-launch-enhancements)) | ✅ Done |
 | **4. Firebase Auth** | Sign up / log in / log out, protected routes | ✅ Done |
 | **5. Firestore data** | Save a job to your pipeline, real-time sync | ✅ Done |
 | **6. Kanban pipeline** | Drag jobs across columns (Wishlist → Offer) | ✅ Done |
@@ -234,6 +237,42 @@ trackboard/
   gracefully on small screens.
 
 > *(This section gets a new entry after each phase.)*
+
+---
+
+## 🚀 Post-launch enhancements
+
+### Job Board v2 — switched from Remotive to The Muse API
+**Why:** Remotive's free tier was hard-capped at ~30 jobs and ignored every
+query parameter (we proved this by testing the API directly). The Muse's free
+API offers hundreds of thousands of jobs with *real* server-side filtering and
+pagination.
+
+**What we built / learned:**
+- **Normalization layer** — `api/muse.js` converts The Muse's messy JSON
+  (`job.name`, `job.company.name`, `job.refs.landing_page`…) into one clean
+  shape (`title`, `company`, `url`…). Every other file uses the clean shape, so
+  swapping APIs again would only touch this one file. *(Decoupling: depend on
+  your own simple shape, not a vendor's.)*
+- **Server-side filtering** — category, experience level, and a remote-only
+  toggle each trigger a fresh request; The Muse filters on its end and returns
+  only matching jobs.
+- **Pagination ("Load more")** — we keep a page number, fetch the next page, and
+  *append* results (de-duping by id) instead of replacing them.
+- **Detail modal** — clicking "Details" opens a popup with the full job
+  description. It closes on Escape, on overlay click, and locks background scroll.
+- **Safe HTML handling (XSS)** — job descriptions arrive as HTML from a third
+  party. Instead of injecting it raw (an injection risk), `htmlToParagraphs()`
+  uses the browser's `DOMParser` to extract readable text. *(Never trust
+  external HTML.)*
+- **Optional API key** — `VITE_MUSE_API_KEY` raises the rate limit; the app
+  works without it but can occasionally get throttled under bursts.
+- **Backward compatibility** — the Pipeline card falls back to old field names
+  (`company_name`) so jobs saved before the switch still render.
+
+**New glossary terms:** *pagination* (fetching results in pages), *normalization*
+(mapping external data to your own shape), *modal* (a focused popup layered over
+the page), *XSS* (cross-site scripting — why you don't inject untrusted HTML).
 
 ---
 

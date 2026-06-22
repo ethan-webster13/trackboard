@@ -1,86 +1,111 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import PageHeader from '../components/PageHeader.jsx'
 import JobCard from '../components/JobCard.jsx'
-import { fetchJobs } from '../api/remotive.js'
+import JobDetailModal from '../components/JobDetailModal.jsx'
+import { fetchJobs, CATEGORIES, LEVELS } from '../api/muse.js'
 import './JobBoard.css'
 
 /**
- * JobBoard — live remote job listings from the Remotive API.
+ * JobBoard — live job listings from The Muse API.
  *
- * Because the free API returns one fixed batch (it ignores category/limit
- * params), we fetch ONCE and then do all filtering in the browser:
- *   - category : derived from the jobs themselves, filtered client-side
- *   - search   : free-text match on title/company, client-side
- *
- * State:
- *   - jobs     : every job returned by the API
- *   - status   : 'loading' | 'error' | 'success' (a simple state machine)
- *   - category : the selected category name ('' = all)
- *   - search   : the text typed in the search box
+ * The Muse supports real server-side filtering and pagination, so:
+ *   - category / level / remoteOnly  → re-fetch from page 1 (server filters)
+ *   - "Load more"                    → fetch the next page and APPEND
+ *   - search box                     → filters the already-loaded jobs locally
  */
 export default function JobBoard() {
   const [jobs, setJobs] = useState([])
-  const [status, setStatus] = useState('loading')
+  const [status, setStatus] = useState('loading') // 'loading'|'error'|'success'
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  // Filters (drive new server requests)
   const [category, setCategory] = useState('')
+  const [level, setLevel] = useState('')
+  const [remoteOnly, setRemoteOnly] = useState(false)
+
+  // Pagination + local search
+  const [page, setPage] = useState(1)
+  const [pageCount, setPageCount] = useState(0)
+  const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
 
-  // Fetch jobs once, when the component first mounts (empty dependency array).
-  useEffect(() => {
-    // AbortController cancels the request if the component unmounts mid-flight.
-    const controller = new AbortController()
+  // The job shown in the detail modal (null = closed)
+  const [selectedJob, setSelectedJob] = useState(null)
 
+  // Fetch the FIRST page whenever a filter changes. Replaces the list.
+  useEffect(() => {
+    const controller = new AbortController()
     async function load() {
       setStatus('loading')
       try {
-        const result = await fetchJobs({ signal: controller.signal })
-        setJobs(result)
+        const result = await fetchJobs({
+          category,
+          level,
+          remoteOnly,
+          page: 1,
+          signal: controller.signal,
+        })
+        setJobs(result.jobs)
+        setPage(1)
+        setPageCount(result.pageCount)
+        setTotal(result.total)
         setStatus('success')
       } catch (err) {
-        // A cancelled request throws an AbortError — that's expected, ignore it.
         if (err.name !== 'AbortError') {
           console.error(err)
           setStatus('error')
         }
       }
     }
-
     load()
     return () => controller.abort()
-  }, [])
+  }, [category, level, remoteOnly])
 
-  // Build the category dropdown options from the data we actually received.
-  // Set() removes duplicates; we sort them alphabetically for a tidy list.
-  const categories = useMemo(() => {
-    const names = jobs.map((job) => job.category).filter(Boolean)
-    return [...new Set(names)].sort()
-  }, [jobs])
+  // Fetch the NEXT page and append it to the existing list.
+  const loadMore = useCallback(async () => {
+    setLoadingMore(true)
+    try {
+      const next = page + 1
+      const result = await fetchJobs({ category, level, remoteOnly, page: next })
+      // Avoid duplicates if the API ever returns overlap.
+      setJobs((prev) => {
+        const seen = new Set(prev.map((j) => j.id))
+        return [...prev, ...result.jobs.filter((j) => !seen.has(j.id))]
+      })
+      setPage(next)
+    } catch (err) {
+      console.error('Could not load more jobs:', err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [page, category, level, remoteOnly])
 
-  // Apply category + search filters to produce the jobs we actually render.
+  // Client-side text search across the jobs already loaded.
   const visibleJobs = useMemo(() => {
     const query = search.trim().toLowerCase()
-    return jobs.filter((job) => {
-      const matchesCategory = !category || job.category === category
-      const matchesSearch =
-        !query ||
-        job.title?.toLowerCase().includes(query) ||
-        job.company_name?.toLowerCase().includes(query)
-      return matchesCategory && matchesSearch
-    })
-  }, [jobs, category, search])
+    if (!query) return jobs
+    return jobs.filter(
+      (job) =>
+        job.title.toLowerCase().includes(query) ||
+        job.company.toLowerCase().includes(query)
+    )
+  }, [jobs, search])
+
+  const hasMore = page < pageCount
 
   return (
     <div className="container">
       <PageHeader
         title="Find your next role"
-        subtitle="Browse live remote job listings and save the ones worth chasing to your pipeline."
+        subtitle="Thousands of live listings from The Muse. Filter, search, and save the ones worth chasing."
       />
 
-      {/* Search + category filter */}
+      {/* Filter + search controls */}
       <div className="jobboard__controls">
         <input
           type="search"
           className="jobboard__search"
-          placeholder="Search by title or company…"
+          placeholder="Search loaded jobs by title or company…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -88,17 +113,36 @@ export default function JobBoard() {
           className="jobboard__filter"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
+          aria-label="Category"
         >
-          <option value="">All categories</option>
-          {categories.map((name) => (
-            <option key={name} value={name}>
-              {name}
+          {CATEGORIES.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
             </option>
           ))}
         </select>
+        <select
+          className="jobboard__filter"
+          value={level}
+          onChange={(e) => setLevel(e.target.value)}
+          aria-label="Experience level"
+        >
+          {LEVELS.map((l) => (
+            <option key={l.value} value={l.value}>
+              {l.label}
+            </option>
+          ))}
+        </select>
+        <label className="jobboard__toggle">
+          <input
+            type="checkbox"
+            checked={remoteOnly}
+            onChange={(e) => setRemoteOnly(e.target.checked)}
+          />
+          Remote only
+        </label>
       </div>
 
-      {/* Render different UI depending on the current status. */}
       {status === 'loading' && <JobBoardSkeletons />}
 
       {status === 'error' && (
@@ -119,16 +163,32 @@ export default function JobBoard() {
       {status === 'success' && visibleJobs.length > 0 && (
         <>
           <p className="jobboard__count">
-            Showing {visibleJobs.length} job
-            {visibleJobs.length !== 1 ? 's' : ''}
+            Showing {visibleJobs.length} of {total.toLocaleString()} matching jobs
           </p>
           <div className="jobboard__grid">
             {visibleJobs.map((job) => (
-              <JobCard key={job.id} job={job} />
+              <JobCard key={job.id} job={job} onOpenDetail={setSelectedJob} />
             ))}
           </div>
+
+          {/* Load more — only when there are more pages and we're not searching
+              (search filters locally, so paging would be confusing then). */}
+          {hasMore && !search && (
+            <div className="jobboard__loadmore">
+              <button
+                className="btn btn-primary"
+                onClick={loadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading…' : 'Load more jobs'}
+              </button>
+            </div>
+          )}
         </>
       )}
+
+      {/* Detail modal (renders only when a job is selected) */}
+      <JobDetailModal job={selectedJob} onClose={() => setSelectedJob(null)} />
     </div>
   )
 }

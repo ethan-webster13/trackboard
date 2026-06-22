@@ -2,27 +2,26 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { usePipeline } from '../context/PipelineContext.jsx'
-import { timeAgo, formatJobType } from '../utils/format.js'
+import { timeAgo } from '../utils/format.js'
 import './JobCard.css'
 
 /**
- * JobCard — displays one job listing with a "Save to pipeline" toggle.
+ * JobCard — displays one normalized job with a "Save to pipeline" toggle and a
+ * "Details" button that opens the full description modal.
  *
  * Props:
- *   - job (object) a single job from the Remotive API
+ *   - job (object)        a normalized job (see api/muse.js)
+ *   - onOpenDetail (fn)   called when the user clicks "Details"
  */
-export default function JobCard({ job }) {
+export default function JobCard({ job, onOpenDetail }) {
   const { user } = useAuth()
   const { isSaved, saveJob, removeJob } = usePipeline()
   const navigate = useNavigate()
 
-  const [logoFailed, setLogoFailed] = useState(false)
   const [busy, setBusy] = useState(false) // true while a save/remove is in flight
-  const showLogo = job.company_logo && !logoFailed
   const saved = isSaved(job.id)
 
   async function handleSaveToggle() {
-    // Saving requires an account — send guests to the login page first.
     if (!user) {
       navigate('/login')
       return
@@ -45,37 +44,25 @@ export default function JobCard({ job }) {
   return (
     <article className="job-card">
       <div className="job-card__top">
-        {showLogo ? (
-          <img
-            className="job-card__logo"
-            src={job.company_logo}
-            alt={`${job.company_name} logo`}
-            loading="lazy"
-            onError={() => setLogoFailed(true)}
-          />
-        ) : (
-          <div className="job-card__logo job-card__logo--fallback">
-            {job.company_name?.charAt(0) ?? '?'}
-          </div>
-        )}
+        {/* The Muse doesn't provide logos, so we always show a letter avatar. */}
+        <div className="job-card__logo job-card__logo--fallback">
+          {job.company?.charAt(0) ?? '?'}
+        </div>
 
         <div className="job-card__heading">
           <h3 className="job-card__title">{job.title}</h3>
-          <p className="job-card__company">{job.company_name}</p>
+          <p className="job-card__company">{job.company}</p>
         </div>
       </div>
 
       <ul className="job-card__meta">
-        {job.candidate_required_location && (
-          <li>📍 {job.candidate_required_location}</li>
-        )}
-        {job.job_type && <li>🕒 {formatJobType(job.job_type)}</li>}
-        {job.salary && <li>💰 {job.salary}</li>}
+        {job.location && <li>📍 {job.location}</li>}
+        {job.level && <li>📈 {job.level}</li>}
       </ul>
 
       <div className="job-card__footer">
-        <span className="job-card__chip">{job.category}</span>
-        <span className="job-card__date">{timeAgo(job.publication_date)}</span>
+        {job.category && <span className="job-card__chip">{job.category}</span>}
+        <span className="job-card__date">{timeAgo(job.publishedAt)}</span>
       </div>
 
       <div className="job-card__actions">
@@ -87,14 +74,13 @@ export default function JobCard({ job }) {
         >
           {busy ? '…' : saved ? '✓ Saved' : '+ Save'}
         </button>
-        <a
+        <button
+          type="button"
           className="btn job-card__view"
-          href={job.url}
-          target="_blank"
-          rel="noreferrer"
+          onClick={() => onOpenDetail(job)}
         >
-          View ↗
-        </a>
+          Details
+        </button>
       </div>
     </article>
   )

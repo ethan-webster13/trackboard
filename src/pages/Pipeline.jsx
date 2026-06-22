@@ -149,7 +149,9 @@ function PipelineCard({ job, isDragging, onDragStart, onDragEnd, onMove, onRemov
           ×
         </button>
       </div>
-      <p className="pcard__company">{job.company_name}</p>
+      {/* `company` is the normalized field; fall back to the old `company_name`
+          for any jobs saved before the API switch. */}
+      <p className="pcard__company">{job.company ?? job.company_name}</p>
 
       <div className="pcard__footer">
         {/* Accessible fallback for changing stage without dragging. */}

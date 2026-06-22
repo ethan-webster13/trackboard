@@ -28,12 +28,30 @@ export function timeAgo(isoDate) {
 }
 
 /**
- * Convert the API's job_type ("full_time", "contract") into a nice label.
+ * Convert an HTML string (like a job description from an external API) into
+ * readable plain text, preserving paragraph/list breaks.
+ *
+ * Why not just render the HTML directly? Injecting third-party HTML into the
+ * page (e.g. via dangerouslySetInnerHTML) is an XSS risk — a malicious or buggy
+ * source could include <script> or event handlers. Converting to text is a
+ * simple, dependency-free way to stay safe. We use the browser's own parser
+ * (DOMParser) so we don't hand-roll fragile regexes.
+ *
+ * @param {string} html
+ * @returns {string[]} an array of text paragraphs (empty lines removed)
  */
-export function formatJobType(jobType) {
-  if (!jobType) return ''
-  return jobType
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
+export function htmlToParagraphs(html) {
+  if (!html) return []
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+
+  // Put a newline after block elements so paragraphs/list items don't run
+  // together once we read textContent.
+  doc.body.querySelectorAll('p, br, li, div, h1, h2, h3, h4, ul, ol').forEach(
+    (el) => el.append('\n')
+  )
+
+  return doc.body.textContent
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
 }
