@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import PageHeader from '../components/PageHeader.jsx'
 import { usePipeline } from '../context/PipelineContext.jsx'
 import './Pipeline.css'
@@ -53,6 +54,17 @@ export default function Pipeline() {
 
       {loading ? (
         <p style={{ color: 'var(--color-text-muted)' }}>Loading your pipeline…</p>
+      ) : jobs.length === 0 ? (
+        <div className="pipeline__cta">
+          <p className="pipeline__cta-emoji">🗂️</p>
+          <h2>Your pipeline is empty</h2>
+          <p className="pipeline__cta-text">
+            Head to the Job Board and save a few roles to start tracking them here.
+          </p>
+          <Link to="/jobs" className="btn btn-primary">
+            Browse the Job Board
+          </Link>
+        </div>
       ) : (
         <div className="pipeline__board">
           {STAGES.map((stage) => {
