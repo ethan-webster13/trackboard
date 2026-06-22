@@ -4,6 +4,8 @@ A full-stack job application tracker built with **React + Firebase**, featuring 
 live job board powered by a public REST API, real-time data sync, and a
 Kanban-style pipeline for managing applications.
 
+**🔗 Live demo: https://trackboard-five.vercel.app**
+
 > This README is also a **learning log**. As an entry-level developer, you can
 > read it top-to-bottom to understand *what* the app does, *how* it's organized,
 > and *why* each decision was made. It grows as we build each phase.
@@ -102,7 +104,7 @@ trackboard/
 | **4. Firebase Auth** | Sign up / log in / log out, protected routes | ✅ Done |
 | **5. Firestore data** | Save a job to your pipeline, real-time sync | ✅ Done |
 | **6. Kanban pipeline** | Drag jobs across columns (Wishlist → Offer) | ✅ Done |
-| **7. Polish & deploy** | Responsive cleanup, empty states, deploy to Vercel | 🔧 Polish done — deploying |
+| **7. Polish & deploy** | Responsive cleanup, empty states, deploy to Vercel | ✅ Done — [live](https://trackboard-five.vercel.app) |
 
 ---
 
