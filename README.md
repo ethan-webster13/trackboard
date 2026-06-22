@@ -102,7 +102,7 @@ trackboard/
 | **4. Firebase Auth** | Sign up / log in / log out, protected routes | ✅ Done |
 | **5. Firestore data** | Save a job to your pipeline, real-time sync | ✅ Done |
 | **6. Kanban pipeline** | Drag jobs across columns (Wishlist → Offer) | ✅ Done |
-| **7. Polish & deploy** | Responsive cleanup, empty states, deploy to Vercel | 🔜 Next |
+| **7. Polish & deploy** | Responsive cleanup, empty states, deploy to Vercel | 🔧 Polish done — deploying |
 
 ---
 
@@ -214,6 +214,22 @@ trackboard/
   5, so the change syncs in real time like everything else.
 - **Accessibility fallback** — the stage dropdown stays, because native drag is
   mouse-only (it doesn't work on touchscreens or via keyboard).
+
+### 🔧 Phase 7 — Polish & deploy
+- **Production build** — `npm run build` outputs an optimized static site to
+  `/dist`. That's what gets deployed (not the dev server).
+- **SPA routing on a host** — a single-page app serves one `index.html` and lets
+  React Router handle paths in the browser. Hosts must be told to send every URL
+  to `index.html`, or deep links like `/pipeline` 404. That's what `vercel.json`
+  rewrites do.
+- **Environment variables in production** — the same `VITE_*` Firebase values
+  from `.env.local` get added in the Vercel dashboard (the `.env.local` file
+  itself is never committed or deployed).
+- **Firebase authorized domains** — Firebase Auth only allows logins from
+  domains you list, so the live Vercel URL must be added there.
+- **Polish details** — a branded SVG favicon, a real page `<title>` and meta
+  description, a friendly empty-state call-to-action, and a navbar that wraps
+  gracefully on small screens.
 
 > *(This section gets a new entry after each phase.)*
 
